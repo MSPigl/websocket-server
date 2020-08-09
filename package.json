@@ -1,0 +1,17 @@
+{
+  "name": "websocket-server",
+  "version": "1.0.0",
+  "description": "This is a test project for running a websocket server",
+  "main": "./build/index.js",
+  "scripts": {
+    "tsc": "tsc",
+    "serve": "node ./build/index.js"
+  },
+  "author": "Matthew Pigliavento",
+  "license": "ISC",
+  "dependencies": {
+    "@types/ws": "^7.2.6",
+    "typescript": "^3.9.7",
+    "ws": "^7.3.1"
+  }
+}
