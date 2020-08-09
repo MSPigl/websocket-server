@@ -1,5 +1,4 @@
 export interface Message {
-    from: string;
-    text: string;
-    time?: number;
+    messageType: string;
+    payload: any;
 }
