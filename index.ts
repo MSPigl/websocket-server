@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
+import {Message} from "./models/message.model";
 
-let messages: Array<{ from: string, text: string, time?: number }> = [];
+let messages: Array<Message> = [];
 
 const server = new WebSocket.Server({ port: 8080 });
 
@@ -12,10 +13,10 @@ server.on('connection', ws => {
     }));
     ws.on('message', message => {
         onMessage(message);
-        let receivedMessage: { text: string, from: string, time?: number };
-        if (typeof message === "string") {
+        let receivedMessage: Message;
+        if (typeof message === 'string') {
             receivedMessage = JSON.parse(message);
-            if (!!receivedMessage['text'] && !!receivedMessage['from']) {
+            if (!!receivedMessage.text && !!receivedMessage.from) {
                 receivedMessage.time = new Date().getTime();
                 messages.push(receivedMessage);
 
