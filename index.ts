@@ -1,7 +1,6 @@
 import WebSocket from 'ws';
 import {ChatMessage} from "./models/chat-message.model";
 import {Message} from "./models/message.model";
-import {User} from "./models/user.model";
 import {Chat} from "./models/chat.model";
 
 enum MessageType {
