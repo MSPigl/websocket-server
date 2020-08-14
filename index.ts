@@ -18,11 +18,7 @@ enum MessageType {
 
 let chats: Array<Chat> = [];
 
-let messages: Array<ChatMessage> = [];
-
-let users: Array<User> = [];
-
-const clients: { [id: number]: { name: string | null, client: WebSocket } } = { };
+const clients: { [id: number]: { name: string, client: WebSocket } } = { };
 
 let baseUserId = 1;
 let baseChatId = 1;
@@ -33,15 +29,15 @@ server.on('connection', ws => {
     onConnection();
     handleConnectionMessage(ws);
 
-    const webSocketId = baseUserId++;
-    clients[webSocketId] = { name: null, client: ws };
+    const clientId = baseUserId++;
+    clients[clientId] = { name: null, client: ws };
 
     ws.on('message', (message) => {
         onMessage(message);
         let receivedMessage: Message;
         if (typeof message === 'string') {
             receivedMessage = JSON.parse(message);
-            console.log('Message received from %s', clients[webSocketId].name ?? 'Unknown');
+            console.log('Message received from %s', clients[clientId].name ?? 'Unknown');
 
             if (!!receivedMessage.messageType && !!receivedMessage.payload) {
                 switch (receivedMessage.messageType) {
@@ -49,11 +45,7 @@ server.on('connection', ws => {
                         handleChatMessage(receivedMessage.payload);
                         break;
                     case MessageType.USER_CONNECTED:
-                        const client = clients[webSocketId];
-                        if (!!client) {
-                            client.name = receivedMessage.payload;
-                        }
-                        handleUserConnection(receivedMessage.payload)
+                        handleUserConnection(clientId, receivedMessage.payload)
                         break;
                     case MessageType.USER_DISCONNECTED:
                         handleUserDisconnection(receivedMessage.payload);
@@ -84,12 +76,15 @@ server.on('connection', ws => {
     });
     ws.on('close', ws => {
         if (!server.clients.size) {
-            messages = [];
-            users = [];
+            chats = [];
         }
         onClose(ws);
     })
 });
+
+function getUsersInServer(): Array<string> {
+    return Object.values(clients).map(client => client.name).filter(user => !!user);
+}
 
 function sendMessageToAllClients(message: Message): void {
     server.clients.forEach(client => client.send(JSON.stringify(message)));
@@ -122,26 +117,29 @@ function sendMessageToClientsInChat(chat: Chat, message: Message): void {
 function handleConnectionMessage(socket: WebSocket): void {
     socket.send(JSON.stringify({
         messageType: MessageType.CONNECTION,
-        payload: messages
+        payload: chats
     }));
 }
 
-function handleUserConnection(name: string): void {
+function handleUserConnection(clientId: number, name: string): void {
     console.log('%s has joined the server', name);
-    users.push({ name: name, typing: false });
-    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: users });
+    const client = clients[clientId];
+    if (!!client) {
+        client.name = name;
+    }
+    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: getUsersInServer() });
 }
 
 function handleUserDisconnection(name: string): void {
     console.log('%s has left the server', name);
 
-    const foundIndex = users.findIndex(user => user.name === name);
-
-    if (foundIndex >= 0) {
-        users.splice(foundIndex, 1);
+    for (const clientId of Object.keys(clients)) {
+        if (clients[+clientId]?.name === name) {
+            clients[+clientId] = undefined;
+        }
     }
 
-    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: users });
+    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: getUsersInServer() });
 }
 
 function handleChatCreated(name: string): void {
@@ -183,10 +181,10 @@ function handleUserTypingEvent(typingEvent: { name: string, chatId: number, typi
     const foundChat = chats.find(chat => chat.chatId === typingEvent.chatId);
 
     if (!!foundChat) {
-        const foundUserIndex = users.findIndex(user => user.name === typingEvent.name);
+        const foundUserIndex = foundChat.users.findIndex(user => user.name === typingEvent.name);
 
         if (foundUserIndex >= 0) {
-            users[foundUserIndex].typing = typingEvent.typing;
+            foundChat.users[foundUserIndex].typing = typingEvent.typing;
             sendMessageToClientsInChat(foundChat, {
                 messageType: typingEvent.typing ? MessageType.USER_TYPING_START : MessageType.USER_TYPING_END,
                 payload: foundChat.users
