@@ -195,14 +195,20 @@ function handleUserTypingEvent(typingEvent: { name: string, chatId: number, typi
     }
 }
 
-function handleChatMessage(message: ChatMessage): void {
-    if (!!message.from && !!message.text) {
+function handleChatMessage(chatMessageEvent: { chatId: number, message: ChatMessage }): void {
+    const { chatId, message } = chatMessageEvent;
+
+    if (!!message.from && !!message.text && chatId > 0) {
         message.time = new Date().getTime();
 
-        sendMessageToAllClients({ messageType: MessageType.CHAT_MESSAGE, payload: message });
+        const foundChat = chats.find(chat => chat.chatId === chatId);
 
-        messages.push(message);
-        messages.sort((a, b) => (a.time ?? 0) < (b.time ?? 0) ? -1 : 1);
+        if (!!foundChat) {
+            foundChat.messages.push(message);
+            foundChat.messages = foundChat.messages.sort((a, b) => (a.time ?? 0) < (b.time ?? 0) ? -1 : 1);
+
+            sendMessageToClientsInChat(foundChat, { messageType: MessageType.CHAT_MESSAGE, payload: { chatId: chatId, message } })
+        }
     }
 }
 
