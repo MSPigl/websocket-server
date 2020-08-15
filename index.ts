@@ -126,7 +126,7 @@ function handleUserConnection(clientId: number, name: string): void {
     if (!!client) {
         client.name = name;
     }
-    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: getUsersInServer() });
+    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: { users: getUsersInServer(), chats: chats } });
 }
 
 function handleUserDisconnection(name: string): void {
@@ -138,10 +138,12 @@ function handleUserDisconnection(name: string): void {
         }
     }
 
-    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: getUsersInServer() });
+    sendMessageToAllClients({ messageType: MessageType.USER_CONNECTED, payload: { users: getUsersInServer(), chats: chats } });
 }
 
 function handleChatCreated(name: string): void {
+    console.log('Chat created by %s', name);
+
     chats.push({
         chatId: baseChatId++,
         messages: [],
@@ -154,19 +156,23 @@ function handleChatCreated(name: string): void {
 }
 
 function handleUserJoinedChat(joinEvent: { name: string, chatId: number }): void {
+    console.log('%s has joined chat %d', joinEvent.name, joinEvent.chatId);
+
     const foundChat = chats.find(chat => chat.chatId === joinEvent.chatId);
 
     if (!!foundChat) {
-        foundChat.users.push({ name: name, typing: false });
+        foundChat.users.push({ name: joinEvent.name, typing: false });
         sendMessageToAllClients({ messageType: MessageType.USER_JOINED_CHAT, payload: chats });
     }
 }
 
 function handleUserLeftChat(leaveEvent: { name: string, chatId: number }): void {
+    console.log('%s has left chat %d', leaveEvent.name, leaveEvent.chatId);
+
     const foundChat = chats.find(chat => chat.chatId === leaveEvent.chatId);
 
     if (!!foundChat) {
-        const foundUserIndex = foundChat.users.findIndex(user => user.name === name);
+        const foundUserIndex = foundChat.users.findIndex(user => user.name === leaveEvent.name);
 
         if (foundUserIndex >= 0) {
             sendMessageToAllClients({ messageType: MessageType.USER_LEFT_CHAT, payload: chats });
