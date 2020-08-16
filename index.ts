@@ -175,6 +175,7 @@ function handleUserLeftChat(leaveEvent: { name: string, chatId: number }): void 
         const foundUserIndex = foundChat.users.findIndex(user => user.name === leaveEvent.name);
 
         if (foundUserIndex >= 0) {
+            foundChat.users.splice(foundUserIndex, 1);
             sendMessageToAllClients({ messageType: MessageType.USER_LEFT_CHAT, payload: chats });
         }
     }
