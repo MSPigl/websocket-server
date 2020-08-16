@@ -192,7 +192,7 @@ function handleUserTypingEvent(typingEvent: { name: string, chatId: number, typi
             foundChat.users[foundUserIndex].typing = typingEvent.typing;
             sendMessageToClientsInChat(foundChat, {
                 messageType: typingEvent.typing ? MessageType.USER_TYPING_START : MessageType.USER_TYPING_END,
-                payload: foundChat.users
+                payload: { chatId: typingEvent.chatId, users: foundChat.users }
             });
         }
     }
